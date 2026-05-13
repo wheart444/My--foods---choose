@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختيار المنتجات /اسير الذكريات (hammody hamoody)</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #8BC34A;
+            --accent: #2196F3;
+            --admin: #e74c3c;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 10px;
+            padding-bottom: 230px;
+        }
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        h2 { margin: 0; font-size: 13px; color: var(--primary); flex: 1; }
+        .admin-toggle { background: #eee; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+        .admin-active { background: var(--admin); color: white; }
+
+        .controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        input[type="text"], select { padding: 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 15px; width: 100%; box-sizing: border-box; outline: none; }
+        
+        .list-container { display: flex; flex-direction: column; gap: 8px; }
+        
+        .card {
+            background: var(--card-bg);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            border: 1px solid #eee;
+            position: relative;
+        }
+        .item-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .img-container {
+            width: 50px; height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            background: #f9f9f9; border-radius: 8px; overflow: hidden; border: 1px solid #f0f0f0;
+        }
+        .img-container img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .item-names h4 { margin: 0; font-size: 14px; color: #2c3e50; direction: ltr; text-align: right; }
+        .item-names h5 { margin: 2px 0; font-size: 13px; color: #d35400; }
+        .item-names p { font-size: 9px; color: #95a5a6; margin: 0; }
+
+        .edit-icon {
+            display: none; position: absolute; top: 2px; left: 2px; background: var(--admin);
+            color: white; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; border: none; cursor: pointer; z-index: 10;
+        }
+
+        .qty-controls { display: flex; align-items: center; gap: 3px; }
+        .qty-btn { color: white; border: none; border-radius: 5px; width: 30px; height: 32px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .minus { background-color: #f44336; }
+        .plus { background-color: var(--secondary); }
+        .plus10 { background-color: var(--accent); width: 38px; font-size: 12px; }
+        .qty-input { width: 32px; text-align: center; font-size: 15px; border: 1px solid #ddd; border-radius: 5px; padding: 4px 0; font-weight: bold; }
+
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 15px; z-index: 1000;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.1); border-radius: 20px 20px 0 0;
+        }
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .btn { padding: 12px; border: none; border-radius: 10px; font-size: 13px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-copy { background-color: #FF9800; }
+        .btn-edit { background-color: #9C27B0; }
+        .btn-delete { background-color: #f44336; }
+        textarea { width: 100%; height: 60px; border-radius: 10px; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; font-family: monospace; font-size: 13px; direction: ltr; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; width: 85%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .modal-content input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <div class="header-area">
+        <h2>اختيار المنتجات /اسير الذكريات (hammody hamoody)</h2>
+        <button id="adminBtn" class="admin-toggle" onclick="showLoginModal()">🔐 إدارة</button>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="بحث باسم المنتج..." oninput="filterItems()">
+        <select id="machineFilter" onchange="filterItems()">
+            <option value="All">جميع الآلات (All Machines)</option>
+        </select>
+    </div>
+
+    <div class="list-container" id="itemsGrid"></div>
+
+    <div class="bottom-bar">
+        <textarea id="resultText" readonly placeholder="القائمة..."></textarea>
+        <div class="action-btns">
+            <button class="btn btn-copy" onclick="copyList()">نسخ</button>
+            <button class="btn btn-edit" id="textEditBtn" onclick="toggleTextEdit()">تعديل</button>
+            <button class="btn btn-delete" onclick="clearAll()">تصفير</button>
+        </div>
+    </div>
+
+    <!-- نافذة تسجيل الدخول -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin:0; text-align:center;">دخول الإدارة</h3>
+            <input type="password" id="adminPassInput" placeholder="أدخل الباسورد الخاص بك">
+            <div style="display:flex; gap:10px;">
+                <button class="btn" style="background:var(--primary); flex:1" onclick="checkAdminPass()">دخول</button>
+                <button class="btn" style="background:#95a5a6; flex:1" onclick="closeLoginModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل المنتج -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin:0; color:var(--admin)">تعديل المنتج</h3>
+            <label>الاسم EN:</label><input type="text" id="editEnName">
+            <label>الاسم AR:</label><input type="text" id="editArName">
+            <label>رفع صورة:</label>
+            <input type="file" id="fileInput" accept="image/*" onchange="previewFile()">
+            <label>أو رابط صورة:</label>
+            <input type="text" id="editImgUrl">
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn" style="background:var(--primary); flex:1" onclick="saveEdit()">حفظ</button>
+                <button class="btn" style="background:#95a5a6; flex:1" onclick="closeEditModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isAdmin = false;
+        let activeEditId = null;
+        let uploadedImgBase64 = "";
+        let items = [];
+
+        // البيانات الكاملة لجميع الآلات والمنتجات
+        const inventoryData = [
+            { machine: "Perfumerie", arMachine: "معمل العطور", items: [ {name: "Fresh Diffuser", arName: "معطر منعش"}, {name: "Zesty Perfume", arName: "عطر حمضيات"}, {name: "Calming Diffuser", arName: "معطر مهدئ"} ] },
+            { machine: "Essential Oils Lab", arMachine: "مختبر الزيوت العطرية", items: [ {name: "Lemon Essential Oil", arName: "زيت ليمون"}, {name: "Mint Essential Oil", arName: "زيت نعناع"}, {name: "Ginger Essential Oil", arName: "زيت زنجبيل"}, {name: "Chamomile Essential Oil", arName: "زيت بابونج"} ] },
+            { machine: "Milkshake Bar", arMachine: "بار الميلك شيك", items: [ {name: "Vanilla Milkshake", arName: "ميلك شيك فانيليا"}, {name: "Mocha Milkshake", arName: "ميلك شيك موكا"}, {name: "Fruity Milkshake", arName: "ميلك شيك فواكه"} ] },
+            { machine: "Porridge Bar", arMachine: "بار العصيدة", items: [ {name: "Apple Porridge", arName: "عصيدة تفاح"}, {name: "Sweet Porridge", arName: "عصيدة حلوة"}, {name: "Fresh Porridge", arName: "عصيدة طازجة"} ] },
+            { machine: "Omelet Station", arMachine: "محطة الأومليت", items: [ {name: "Colorful Omelet", arName: "أومليت ملون"}, {name: "Spring Omelet", arName: "أومليت الربيع"}, {name: "Rice Omelet", arName: "أومليت الأرز"}, {name: "Cheese Omelet", arName: "أومليت الجبن"}, {name: "Potato Omelet", arName: "أومليت البطاطس"} ] },
+            { machine: "Waffle Maker", arMachine: "صانعة الوافل", items: [ {name: "Plain Waffles", arName: "وافل سادة"}, {name: "Breakfast Waffles", arName: "وافل الفطور"}, {name: "Berry Waffles", arName: "وافل التوت"}, {name: "Chocolate Waffles", arName: "وافل شوكولاتة"}, {name: "Blueberry Waffles", arName: "وافل توت أزرق"} ] },
+            { machine: "Cupcake Maker", arMachine: "صانعة الكب كيك", items: [ {name: "Plain Cupcake", arName: "كب كيك سادة"}, {name: "Tropical Cupcake", arName: "كب كيك استوائي"}, {name: "Cookie Cupcake", arName: "كب كيك الكوكيز"}, {name: "Guava Cupcake", arName: "كب كيك الجوافة"} ] },
+            { machine: "Stew Pot", arMachine: "وعاء اليخنة", items: [ {name: "Chickpea Stew", arName: "يخنة الحمص"}, {name: "Winter Stew", arName: "يخنة الشتاء"}, {name: "Chili Stew", arName: "يخنة حارة"} ] },
+            { machine: "Yogurt Maker", arMachine: "صانعة الزبادي", items: [ {name: "Plain Yogurt", arName: "زبادي سادة"}, {name: "Strawberry Yogurt", arName: "زبادي فراولة"}, {name: "Tropical Yogurt", arName: "زبادي استوائي"}, {name: "Breakfast Bowl", arName: "وعاء الإفطار"} ] },
+            { machine: "Fudge Shop", arMachine: "متجر الفدج", items: [ {name: "Mint Fudge", arName: "فدج النعناع"}, {name: "Chili Fudge", arName: "فدج حار"}, {name: "Lemon Fudge", arName: "فدج الليمون"}, {name: "Peanut Fudge", arName: "فدج فول سوداني"}, {name: "Rich Fudge", arName: "فدج غني"} ] },
+            { machine: "Pottery Studio", arMachine: "استوديو الفخار", items: [ {name: "Tea Pot", arName: "إبريق شاي"}, {name: "Potted Plant", arName: "نبتة في أصيص"}, {name: "Clay Mug", arName: "كوب طيني"} ] },
+            { machine: "Preservation Station", arMachine: "محطة الحفظ", items: [ {name: "Dried Fruit", arName: "فواكه مجففة"}, {name: "Pickles", arName: "مخلل"}, {name: "Canned Fish", arName: "سمك معلب"}, {name: "Kimchi", arName: "كيمتشي"}, {name: "Guava Compote", arName: "كومبوت الجوافة"} ] },
+            { machine: "Donut Maker", arMachine: "صانعة الدونات", items: [ {name: "Plain Donut", arName: "دونات سادة"}, {name: "Cream Donut", arName: "دونات بالكريمة"}, {name: "Bacon Donut", arName: "دونات لحم مقدد"}, {name: "Filled Donut", arName: "دونات محشوة"}, {name: "Crunchy Donut", arName: "دونات مقرمشة"}, {name: "Sprinkled Donut", arName: "دونات مزينة"} ] },
+            { machine: "Bath Kiosk", arMachine: "كشك الاستحمام", items: [ {name: "Exfoliating Soap", arName: "صابون مقشر"}, {name: "Honey Face Mask", arName: "قناع العسل"}, {name: "Honey Soap", arName: "صابون العسل"}, {name: "Lemon Lotion", arName: "لوشن الليمون"}, {name: "Rich Soap", arName: "صابون غني"} ] },
+            { machine: "Squirrel Tree", arMachine: "شجرة السناجب", items: [ {name: "Peanuts", arName: "فول سوداني"} ] },
+            { machine: "Deep Fryer", arMachine: "المقلاة العميقة", items: [ {name: "Bacon Fries", arName: "بطاطس بلحم مقدد"}, {name: "Chili Poppers", arName: "فلفل حار مقلي"}, {name: "Hand Pies", arName: "فطائر يدوية"}, {name: "Fried Candy Bar", arName: "حلوى مقلية"}, {name: "Falafel", arName: "فلافل"}, {name: "Samosa", arName: "سمبوسة"} ] },
+            { machine: "Candy Machine", arMachine: "آلة الحلوى", items: [ {name: "Caramel Apple", arName: "تفاح مكرمل"}, {name: "Toffee", arName: "توفي"}, {name: "Chocolate", arName: "شوكولاتة"}, {name: "Lollipop", arName: "مصاصة"}, {name: "Jelly Beans", arName: "حلوى الجيلي"}, {name: "Sesame Brittle", arName: "حلوى السمسم"}, {name: "Honey Peanuts", arName: "فول سوداني بالعسل"}, {name: "Cotton Candy", arName: "غزل البنات"} ] },
+            { machine: "Fish Boat", arMachine: "قارب الصيد", items: [ {name: "Fish Meat", arName: "لحم سمك"}, {name: "Lobster Meat", arName: "لحم جراد البحر"}, {name: "Duck Down", arName: "ريش البط"} ] },
+            { machine: "Dairy", arMachine: "معمل الألبان", items: [ {name: "Cream", arName: "كريمة"}, {name: "Butter", arName: "زبدة"}, {name: "Cheese", arName: "جبن"}, {name: "Goat Cheese", arName: "جبن ماعز"} ] },
+            { machine: "Wok Kitchen", arMachine: "مطبخ الووك", items: [ {name: "Fried Rice", arName: "أرز مقلي"}, {name: "Tofu Stir Fry", arName: "توفو مقلي"}, {name: "Spicy Fish", arName: "سمك حار"}, {name: "Peanut Noodles", arName: "نودلز فول سوداني"} ] },
+            { machine: "Fondue Pot", arMachine: "وعاء الفوندو", items: [ {name: "Cheese Fondue", arName: "فوندو الجبن"}, {name: "Bacon Fondue", arName: "فوندو اللحم"}, {name: "Chocolate Fondue", arName: "فوندو الشوكولاتة"}, {name: "Tropical Fondue", arName: "فوندو استوائي"} ] },
+            { machine: "Flowershop", arMachine: "متجر الزهور", items: [ {name: "Rustic Bouquet", arName: "باقة ريفية"}, {name: "Bright Bouquet", arName: "باقة مشرقة"}, {name: "Soft Bouquet", arName: "باقة ناعمة"}, {name: "Candy Bouquet", arName: "باقة الحلوى"}, {name: "Gracious Bouquet", arName: "باقة أنيقة"}, {name: "Veggie Bouquet", arName: "باقة خضروات"}, {name: "Birthday Bouquet", arName: "باقة عيد ميلاد"} ] },
+            { machine: "Taco Kitchen", arMachine: "مطبخ التاكو", items: [ {name: "Taco", arName: "تاكو"}, {name: "Fish Taco", arName: "تاكو السمك"}, {name: "Quesadilla", arName: "كيساديلا"}, {name: "Nachos", arName: "ناتشوز"}, {name: "Spicy Bean Taco", arName: "تاكو الفاصوليا"} ] },
+            { machine: "Tea Stand", arMachine: "كشك الشاي", items: [ {name: "Green Tea", arName: "شاي أخضر"}, {name: "Milk Tea", arName: "شاي بالحليب"}, {name: "Honey Tea", arName: "شاي بالعسل"}, {name: "Lemon Tea", arName: "شاي بالليمون"}, {name: "Orange Tea", arName: "شاي بالبرتقال"}, {name: "Ice Tea", arName: "شاي مثلج"}, {name: "Mint Tea", arName: "شاي بالنعناع"}, {name: "Apple Ginger Tea", arName: "شاي تفاح وزنجبيل"}, {name: "Pomegranate Tea", arName: "شاي رمان"}, {name: "Chamomile Tea", arName: "شاي بابونج"} ] },
+            { machine: "Hot Dog Stand", arMachine: "كشك النقانق", items: [ {name: "Hot Dog", arName: "نقانق"}, {name: "Tofu Dog", arName: "نقانق التوفو"}, {name: "Corn Dog", arName: "كورن دوج"}, {name: "Onion Dog", arName: "نقانق بالبصل"} ] },
+            { machine: "Pasta Kitchen", arMachine: "مطبخ الباستا", items: [ {name: "Gnocchi", arName: "نيوكي"}, {name: "Veggie Lasagna", arName: "لازانيا خضار"}, {name: "Lobster Pasta", arName: "باستا جراد البحر"}, {name: "Pasta Carbonara", arName: "باستا كاربونارا"}, {name: "Spicy Pasta", arName: "باستا حارة"}, {name: "Broccoli Pasta", arName: "باستا البروكلي"}, {name: "Mushroom Pasta", arName: "باستا الفطر"} ] },
+            { machine: "Pasta Maker", arMachine: "صانعة الباستا", items: [ {name: "Fresh Pasta", arName: "باستا طازجة"}, {name: "Rice Noodles", arName: "نودلز الأرز"} ] },
+            { machine: "Hat Maker", arMachine: "صانعة القبعات", items: [ {name: "Cloche Hat", arName: "قبعة كلوش"}, {name: "Top Hat", arName: "قبعة رسمية"}, {name: "Sun Hat", arName: "قبعة شمس"}, {name: "Flower Crown", arName: "تاج الزهور"} ] },
+            { machine: "Bakery", arMachine: "المخبز", items: [ {name: "Bread", arName: "خبز"}, {name: "Cookie", arName: "كوكيز"}, {name: "Corn Bread", arName: "خبز الذرة"}, {name: "Pizza", arName: "بيتزا"}, {name: "Spicy Pizza", arName: "بيتزا حارة"}, {name: "Raspberry Muffin", arName: "مافن التوت"}, {name: "Blackberry Muffin", arName: "مافن توت أسود"}, {name: "Potato Bread", arName: "خبز البطاطس"}, {name: "Frutti di Mare Pizza", arName: "بيتزا بحرية"}, {name: "Banana Bread", arName: "خبز الموز"}, {name: "Gingerbread Cookie", arName: "كوكيز الزنجبيل"}, {name: "Macaroon", arName: "ماكارون"}, {name: "Pineapple Coconut Bars", arName: "ألواح أناناس وجوز هند"}, {name: "Blueberry Muffin", arName: "مافن توت أزرق"} ] },
+            { machine: "Sugar Mill", arMachine: "طاحونة السكر", items: [ {name: "Brown Sugar", arName: "سكر بني"}, {name: "White Sugar", arName: "سكر أبيض"}, {name: "Syrup", arName: "شراب"} ] },
+            { machine: "Popcorn Pot", arMachine: "وعاء الفشار", items: [ {name: "Popcorn", arName: "فشار"}, {name: "Butter Popcorn", arName: "فشار بالزبدة"}, {name: "Chili Popcorn", arName: "فشار حار"}, {name: "Chocolate Popcorn", arName: "فشار شوكولاتة"}, {name: "Honey Popcorn", arName: "فشار بالعسل"}, {name: "Snack Mix", arName: "مكسرات تسلية"} ] },
+            { machine: "BBQ Grill", arMachine: "شواية الباربيكيو", items: [ {name: "Pancakes", arName: "بان كيك"}, {name: "Bacon and Eggs", arName: "بيض ولحم مقدد"}, {name: "Hamburger", arName: "همبرغر"}, {name: "Roasted Tomatoes", arName: "طماطم مشوية"}, {name: "Baked Potato", arName: "بطاطس مشوية"}, {name: "Fishburger", arName: "برغر سمك"}, {name: "Fish and Chips", arName: "سمك وبطاطا"}, {name: "Lobster Skewer", arName: "سيخ جراد البحر"}, {name: "Grilled Onion", arName: "بصل مشوي"}, {name: "Banana Pancakes", arName: "بان كيك الموز"}, {name: "Grilled Eggplant", arName: "باذنجان مشوي"}, {name: "Fish Skewer", arName: "سيخ سمك"}, {name: "Winter Veggies", arName: "خضار شتوية"}, {name: "Garlic Bread", arName: "خبز بالثوم"}, {name: "Stuffed Peppers", arName: "فلفل محشي"}, {name: "Grilled Asparagus", arName: "هليون مشوي"} ] },
+            { machine: "Pie Oven", arMachine: "فرن الفطائر", items: [ {name: "Carrot Pie", arName: "فطيرة جزر"}, {name: "Bacon Pie", arName: "فطيرة لحم مقدد"}, {name: "Pumpkin Pie", arName: "فطيرة يقطين"}, {name: "Apple Pie", arName: "فطيرة تفاح"}, {name: "Feta Pie", arName: "فطيرة فيتا"}, {name: "Casserole", arName: "طاجن"}, {name: "Shepherds Pie", arName: "فطيرة الراعي"}, {name: "Fish Pie", arName: "فطيرة سمك"}, {name: "Lemon Pie", arName: "فطيرة ليمون"}, {name: "Peach Tart", arName: "تارت الخوخ"}, {name: "Eggplant Parmesan", arName: "باذنجان بارميزان"}, {name: "Chocolate Pie", arName: "فطيرة شوكولاتة"}, {name: "Mushroom Pot Pie", arName: "فطيرة فطر"}, {name: "Passion Fruit Pie", arName: "فطيرة باشن فروت"}, {name: "Asparagus Quiche", arName: "كيش الهليون"} ] },
+            { machine: "Loom", arMachine: "النول", items: [ {name: "Sweater", arName: "سترة"}, {name: "Blue Woolly Hat", arName: "قبعة صوف زرقاء"}, {name: "Blue Sweater", arName: "سترة زرقاء"}, {name: "Red Scarf", arName: "وشاح أحمر"}, {name: "Cotton Fabrics", arName: "قماش قطن"}, {name: "Flower Shawl", arName: "شال زهور"} ] },
+            { machine: "Cake Oven", arMachine: "فرن الكيك", items: [ {name: "Cheese Cake", arName: "تشيز كيك"}, {name: "Carrot Cake", arName: "كيكة الجزر"}, {name: "Birthday Cake", arName: "كيكة ميلاد"}, {name: "Chocolate Cake", arName: "كيكة شوكولاتة"}, {name: "Strawberry Cake", arName: "كيكة فراولة"}, {name: "Berry Cake", arName: "كيكة التوت"}, {name: "Potato Feta Cake", arName: "كيكة بطاطس وفيتا"}, {name: "Lemon Cake", arName: "كيكة ليمون"}, {name: "Honey Apple Cake", arName: "كيكة تفاح بالعسل"}, {name: "Fruit Cake", arName: "كيكة فواكه"}, {name: "Pineapple Cake", arName: "كيكة أناناس"}, {name: "Fancy Cake", arName: "كيكة فاخرة"}, {name: "Chocolate Roll", arName: "رول شوكولاتة"}, {name: "Pomegranate Cake", arName: "كيكة رمان"}, {name: "Blueberry Cheesecake", arName: "تشيز كيك توت أزرق"} ] },
+            { machine: "Smelter", arMachine: "فرن الصهر", items: [ {name: "Silver Bar", arName: "سبيكة فضة"}, {name: "Gold Bar", arName: "سبيكة ذهب"}, {name: "Platinum Bar", arName: "سبيكة بلاتين"}, {name: "Coal Bar", arName: "سبيكة فحم"}, {name: "Iron Bar", arName: "سبيكة حديد"} ] },
+            { machine: "Juice Press", arMachine: "عصارة الفواكه", items: [ {name: "Carrot Juice", arName: "عصير جزر"}, {name: "Tomato Juice", arName: "عصير طماطم"}, {name: "Apple Juice", arName: "عصير تفاح"}, {name: "Cherry Juice", arName: "عصير كرز"}, {name: "Berry Juice", arName: "عصير توت"}, {name: "Orange Juice", arName: "عصير برتقال"}, {name: "Grape Juice", arName: "عصير عنب"}, {name: "Watermelon Juice", arName: "عصير بطيخ"}, {name: "Pineapple Juice", arName: "عصير أناناس"}, {name: "Passion Fruit Juice", arName: "عصير باشن فروت"}, {name: "Mango Juice", arName: "عصير مانجو"}, {name: "Guava Juice", arName: "عصير جوافة"} ] },
+            { machine: "Ice Cream Maker", arMachine: "صانعة الآيس كريم", items: [ {name: "Vanilla Ice Cream", arName: "آيس كريم فانيليا"}, {name: "Cherry Popsicle", arName: "مثلجات الكرز"}, {name: "Strawberry Ice Cream", arName: "آيس كريم فراولة"}, {name: "Chocolate Ice Cream", arName: "آيس كريم شوكولاتة"}, {name: "Orange Sorbet", arName: "سوربيه البرتقال"}, {name: "Peach Ice Cream", arName: "آيس كريم خوخ"}, {name: "Banana Split", arName: "بانانا سبليت"}, {name: "Mint Ice Cream", arName: "آيس كريم نعناع"}, {name: "Sesame Ice Cream", arName: "آيس كريم سمسم"}, {name: "Peanut Butter Milkshake", arName: "ميلك شيك فول سوداني"}, {name: "Affogato", arName: "أفوغاتو"}, {name: "Coconut Ice Cream", arName: "آيس كريم جوز هند"}, {name: "Fruit Sorbet", arName: "سوربيه فواكه"} ] },
+            { machine: "Jam Maker", arMachine: "صانعة المربى", items: [ {name: "Apple Jam", arName: "مربى تفاح"}, {name: "Raspberry Jam", arName: "مربى توت"}, {name: "Blackberry Jam", arName: "مربى توت أسود"}, {name: "Cherry Jam", arName: "مربى كرز"}, {name: "Strawberry Jam", arName: "مربى فراولة"}, {name: "Marmelade", arName: "مارمالاد"}, {name: "Peach Jam", arName: "مربى خوخ"}, {name: "Grape Jam", arName: "مربى عنب"}, {name: "Plum Jam", arName: "مربى برقوق"}, {name: "Passion Fruit Jam", arName: "مربى باشن فروت"}, {name: "Blueberry Chutney", arName: "صلصة التوت الأزرق"} ] },
+            { machine: "Jeweler", arMachine: "صائغ المجوهرات", items: [ {name: "Bracelet", arName: "سوار"}, {name: "Necklace", arName: "قلادة"}, {name: "Diamond Ring", arName: "خاتم ألماس"}, {name: "Iron Bracelet", arName: "سوار حديد"}, {name: "Flower Pendant", arName: "قلادة زهور"} ] },
+            { machine: "Coffee Kiosk", arMachine: "كشك القهوة", items: [ {name: "Espreso", arName: "إسبريسو"}, {name: "Latte", arName: "لاتيه"}, {name: "Mocha", arName: "موكا"}, {name: "Raspberry Mocha", arName: "موكا توت"}, {name: "Hot Chocolate", arName: "شوكولاتة ساخنة"}, {name: "Iced Banana Latte", arName: "لاتيه موز مثلج"}, {name: "Caramel Latte", arName: "لاتيه كراميل"} ] },
+            { machine: "Soup Kitchen", arMachine: "مطبخ الحساء", items: [ {name: "Lobster Soup", arName: "حساء جراد البحر"}, {name: "Tomato Soup", arName: "حساء طماطم"}, {name: "Fish Soup", arName: "حساء سمك"}, {name: "Pumpkin Soup", arName: "حساء يقطين"}, {name: "Noodle Soup", arName: "حساء نودلز"}, {name: "Onion Soup", arName: "حساء بصل"}, {name: "Potato Soup", arName: "حساء بطاطس"}, {name: "Bell Pepper Soup", arName: "حساء فلفل حلو"}, {name: "Broccoli Soup", arName: "حساء بروكلي"}, {name: "Mushroom Soup", arName: "حساء فطر"}, {name: "Cabbage Soup", arName: "حساء ملفوف"}, {name: "Asparagus Soup", arName: "حساء هليون"} ] },
+            { machine: "Sauce Maker", arMachine: "صانعة الصلصات", items: [ {name: "Soy Sauce", arName: "صلصة صويا"}, {name: "Olive Oil", arName: "زيت زيتون"}, {name: "Mayonaise", arName: "مايونيز"}, {name: "Lemon Curd", arName: "خثارة ليمون"}, {name: "Tomato Sauce", arName: "صلصة طماطم"}, {name: "Salsa", arName: "سالسا"}, {name: "Olive Dip", arName: "تغميسة زيتون"}, {name: "Tart Dressing", arName: "تتبيلة تارت"}, {name: "Hummus", arName: "حمص"}, {name: "Bean Dip", arName: "تغميسة فاصوليا"} ] },
+            { machine: "Sushi Bar", arMachine: "بار السوشي", items: [ {name: "SushiRoll", arName: "سوشي رول"}, {name: "LobsterSushi", arName: "سوشي جراد البحر"}, {name: "EggRoll", arName: "رول بيض"}, {name: "Big Sushi Roll", arName: "سوشي رول كبير"}, {name: "Rice Ball", arName: "كرة أرز"} ] },
+            { machine: "Salad Bar", arMachine: "بار السلطات", items: [ {name: "Greek Salad", arName: "سلطة يونانية"}, {name: "Bacon Salad", arName: "سلطة لحم مقدد"}, {name: "Seafood Salad", arName: "سلطة بحرية"}, {name: "Pasta Salad", arName: "سلطة باستا"}, {name: "Fruit Salad", arName: "سلطة فواكه"}, {name: "Summer Salad", arName: "سلطة صيفية"}, {name: "Summer Rolls", arName: "رولات صيفية"}, {name: "Veggie Platter", arName: "طبق خضروات"}, {name: "Mushroom Salad", arName: "سلطة فطر"}, {name: "Beetroot Salad", arName: "سلطة شمندر"}, {name: "Coleslaw", arName: "كولسلو"}, {name: "Orange Salad", arName: "سلطة برتقال"}, {name: "Bean Salad", arName: "سلطة فاصوليا"} ] },
+            { machine: "Sandwich Bar", arMachine: "بار السندويشات", items: [ {name: "Bacon Toast", arName: "توست لحم مقدد"}, {name: "Veggie Bagel", arName: "بيجل خضار"}, {name: "Egg Sandwich", arName: "شطيرة بيض"}, {name: "Honey Toast", arName: "توست عسل"}, {name: "Goat Cheese Toast", arName: "توست جبن ماعز"}, {name: "Onion Melt", arName: "شطيرة بصل مذابة"}, {name: "Cucumber Sandwich", arName: "شطيرة خيار"}, {name: "Peanut Butter Sandwich", arName: "شطيرة زبدة فول سوداني"}, {name: "Hummus Wrap", arName: "لفافة حمص"} ] },
+            { machine: "Smoothie Mixer", arMachine: "خلاط السموثي", items: [ {name: "Green Smoothie", arName: "سموثي أخضر"}, {name: "Berry Smoothie", arName: "سموثي توت"}, {name: "Yogurt Smoothie", arName: "سموثي زبادي"}, {name: "Mixed Smoothie", arName: "سموثي مشكل"}, {name: "Cocoa Smoothie", arName: "سموثي كاكاو"}, {name: "Plum Smoothie", arName: "سموثي برقوق"}, {name: "Cucumber Smoothie", arName: "سموثي خيار"}, {name: "Sesame Smoothie", arName: "سموثي سمسم"}, {name: "Tropical Smoothie", arName: "سموثي استوائي"} ] },
+            { machine: "Sewing Machine", arMachine: "آلة الخياطة", items: [ {name: "Cotton Shirt", arName: "قميص قطن"}, {name: "Wooly Pants", arName: "سروال صوف"}, {name: "Violet Dress", arName: "فستان بنفسجي"}, {name: "Pillow", arName: "وسادة"}, {name: "Blanket", arName: "بطانية"}, {name: "Soothing Pad", arName: "وسادة مهدئة"} ] },
+            { machine: "Honey Extractor", arMachine: "مستخرج العسل", items: [ {name: "Honey", arName: "عسل"}, {name: "Beeswax", arName: "شمع العسل"} ] },
+            { machine: "Candle Maker", arMachine: "صانعة الشموع", items: [ {name: "Strawberry Candle", arName: "شمعة فراولة"}, {name: "Raspberry Candle", arName: "شمعة توت"}, {name: "Lemon Candle", arName: "شمعة ليمون"}, {name: "Floral Candle", arName: "شمعة زهور"}, {name: "Colorful Candle", arName: "شمعة ملونة"} ] }
+        ];
+
+        function init() {
+            const saved = localStorage.getItem('ASIR_FINALE_DB');
+            if (saved) {
+                items = JSON.parse(saved);
+            } else {
+                inventoryData.forEach((cat, cIdx) => {
+                    cat.items.forEach((it, iIdx) => {
+                        items.push({
+                            id: 'it_' + cIdx + '_' + iIdx,
+                            machine: cat.machine,
+                            arMachine: cat.arMachine,
+                            name: it.name,
+                            arName: it.arName,
+                            qty: 0,
+                            img: ""
+                        });
+                    });
+                });
+                saveData();
+            }
+
+            const filter = document.getElementById('machineFilter');
+            const uniqueMachines = [...new Set(items.map(i => i.machine))];
+            uniqueMachines.forEach(m => {
+                const found = items.find(i => i.machine === m);
+                filter.innerHTML += `<option value="${m}">${found.arMachine} - ${m}</option>`;
+            });
+            render();
+        }
+
+        function saveData() { localStorage.setItem('ASIR_FINALE_DB', JSON.stringify(items)); }
+
+        function render(data = items) {
+            const grid = document.getElementById('itemsGrid');
+            grid.innerHTML = '';
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                let imgUrl = item.img || `https://static.wikia.nocookie.net/hayday/images/archive/temp/temp/${item.name.replace(/\s+/g, '_')}.png`;
+                card.innerHTML = `
+                    <button class="edit-icon" style="display:${isAdmin?'block':'none'}" onclick="openEdit('${item.id}')">✎</button>
+                    <div class="item-info">
+                        <div class="img-container">
+                            <img src="${imgUrl}" onerror="this.src='https://placehold.co/40x40?text=📦'">
+                        </div>
+                        <div class="item-names">
+                            <h4>${item.name}</h4>
+                            <h5>${item.arName}</h5>
+                            <p>${item.arMachine} - ${item.machine}</p>
+                        </div>
+                    </div>
+                    <div class="qty-controls">
+                        <button class="qty-btn minus" onclick="updateQty('${item.id}', -1)">-</button>
+                        <input type="number" id="q${item.id}" class="qty-input" value="${item.qty || ''}" oninput="manualQty('${item.id}')">
+                        <button class="qty-btn plus" onclick="updateQty('${item.id}', 1)">+</button>
+                        <button class="qty-btn plus10" onclick="updateQty('${item.id}', 10)">+10</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Login Functions
+        function showLoginModal() { 
+            if(isAdmin) { toggleAdmin(); return; }
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('adminPassInput').focus();
+        }
+        function closeLoginModal() { document.getElementById('loginModal').style.display = 'none'; document.getElementById('adminPassInput').value = ''; }
+        function checkAdminPass() {
+            const pass = document.getElementById('adminPassInput').value;
+            if (pass === "572407") {
+                isAdmin = true; toggleAdminUI(); closeLoginModal();
+            } else { alert("الباسورد غير صحيح!"); }
+        }
+        function toggleAdmin() { isAdmin = !isAdmin; toggleAdminUI(); }
+        function toggleAdminUI() {
+            const btn = document.getElementById('adminBtn');
+            btn.className = isAdmin ? 'admin-toggle admin-active' : 'admin-toggle';
+            btn.innerText = isAdmin ? '🔓 وضع التعديل' : '🔐 إدارة';
+            render();
+        }
+
+        // Edit Functions
+        function openEdit(id) {
+            activeEditId = id;
+            const item = items.find(i => i.id === id);
+            document.getElementById('editEnName').value = item.name;
+            document.getElementById('editArName').value = item.arName;
+            document.getElementById('editImgUrl').value = (item.img && !item.img.startsWith('data:')) ? item.img : '';
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; uploadedImgBase64 = ""; }
+        function previewFile() {
+            const file = document.querySelector('#fileInput').files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => { uploadedImgBase64 = reader.result; };
+            if (file) reader.readAsDataURL(file);
+        }
+        function saveEdit() {
+            const item = items.find(i => i.id === activeEditId);
+            item.name = document.getElementById('editEnName').value;
+            item.arName = document.getElementById('editArName').value;
+            item.img = uploadedImgBase64 || document.getElementById('editImgUrl').value;
+            saveData(); closeEditModal(); render();
+        }
+
+        function updateQty(id, val) {
+            const item = items.find(i => i.id === id);
+            item.qty = (item.qty || 0) + val;
+            if (item.qty < 0) item.qty = 0;
+            document.getElementById('q'+id).value = item.qty || '';
+            updateList();
+        }
+        function manualQty(id) {
+            const item = items.find(i => i.id === id);
+            item.qty = parseInt(document.getElementById('q'+id).value) || 0;
+            updateList();
+        }
+        function updateList() {
+            const res = items.filter(i => i.qty > 0).map(i => `${i.name}=${i.qty}`).join('\n');
+            document.getElementById('resultText').value = res;
+        }
+        function filterItems() {
+            const s = document.getElementById('searchInput').value.toLowerCase();
+            const m = document.getElementById('machineFilter').value;
+            const filtered = items.filter(i => (i.name.toLowerCase().includes(s) || i.arName.includes(s)) && (m === 'All' || i.machine === m));
+            render(filtered);
+        }
+        function copyList() {
+            const t = document.getElementById('resultText'); if (!t.value) return;
+            t.select(); document.execCommand('copy'); alert("تم النسخ!");
+        }
+        function toggleTextEdit() {
+            const t = document.getElementById('resultText');
+            if (t.hasAttribute('readonly')) { t.removeAttribute('readonly'); t.focus(); document.getElementById('textEditBtn').innerText = "حفظ"; }
+            else { t.setAttribute('readonly', 'true'); document.getElementById('textEditBtn').innerText = "تعديل"; }
+        }
+        function clearAll() { if (confirm("تصفير الكل؟")) { items.forEach(i => i.qty = 0); render(); updateList(); } }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
